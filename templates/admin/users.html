@@ -253,7 +253,17 @@
 </style>
 
 <script>
+// Store current user ID and pagination state
+let currentUserId = null;
+let currentClassPage = 1;
+let currentConvPage = 1;
+
 function viewUserDetails(userId) {
+    // Reset pagination
+    currentUserId = userId;
+    currentClassPage = 1;
+    currentConvPage = 1;
+    
     // Show loading skeleton while fetching
     document.getElementById('userDetailsContent').innerHTML = `
         <div class="text-center">
@@ -269,7 +279,15 @@ function viewUserDetails(userId) {
     modal.show();
     
     // Fetch user details
-    fetch(`/admin/user/${userId}/details`)
+    loadUserDetails(userId, 1, 1);
+}
+
+function loadUserDetails(userId, classPage = 1, convPage = 1) {
+    currentUserId = userId;
+    currentClassPage = classPage;
+    currentConvPage = convPage;
+    
+    fetch(`/admin/user/${userId}/details?class_page=${classPage}&conv_page=${convPage}`)
     .then(response => {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -299,6 +317,8 @@ function displayUserDetails(data) {
     const medicalData = data.medical_data;
     const classificationHistory = data.classification_history;
     const conversations = data.conversations;
+    const classPagination = data.classification_pagination || {};
+    const convPagination = data.conversation_pagination || {};
     
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || 'N/A';
     const role = user.is_admin ? 'Administrator' : 'User';
@@ -327,6 +347,9 @@ function displayUserDetails(data) {
     
     let classificationHtml = '';
     if (classificationHistory && classificationHistory.length > 0) {
+        const startItem = ((classPagination.page - 1) * classPagination.per_page) + 1;
+        const endItem = Math.min(classPagination.page * classPagination.per_page, classPagination.total);
+        
         classificationHtml = `
             <div class="table-responsive">
                 <table class="table table-sm">
@@ -343,13 +366,32 @@ function displayUserDetails(data) {
                             <tr>
                                 <td>${record.created_at}</td>
                                 <td>${record.hgb} g/dL</td>
-                                <td><span class="badge ${record.predicted_class === 'Anemic' ? 'bg-danger' : 'bg-success'}">${record.predicted_class}</span></td>
+                                <td><span class="badge ${record.predicted_class === 'Anemic' || (record.predicted_class && record.predicted_class !== 'Normal') ? 'bg-danger' : 'bg-success'}">${record.predicted_class || 'N/A'}</span></td>
                                 <td>${(record.confidence * 100).toFixed(2)}%</td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
+            ${classPagination.total_pages > 1 ? `
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">Showing ${startItem} to ${endItem} of ${classPagination.total}</small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            ${classPagination.has_prev ? `
+                                <li class="page-item">
+                                    <a class="page-link" href="#" onclick="loadUserDetails(${user.id}, ${classPagination.page - 1}, ${currentConvPage}); return false;">Previous</a>
+                                </li>
+                            ` : ''}
+                            ${classPagination.has_next ? `
+                                <li class="page-item">
+                                    <a class="page-link" href="#" onclick="loadUserDetails(${user.id}, ${classPagination.page + 1}, ${currentConvPage}); return false;">Next</a>
+                                </li>
+                            ` : ''}
+                        </ul>
+                    </nav>
+                </div>
+            ` : ''}
         `;
     } else {
         classificationHtml = '<p class="text-muted">No classification history available</p>';
@@ -357,6 +399,9 @@ function displayUserDetails(data) {
     
     let conversationsHtml = '';
     if (conversations && conversations.length > 0) {
+        const startItem = ((convPagination.page - 1) * convPagination.per_page) + 1;
+        const endItem = Math.min(convPagination.page * convPagination.per_page, convPagination.total);
+        
         conversationsHtml = `
             <div class="list-group">
                 ${conversations.map(conv => `
@@ -370,6 +415,25 @@ function displayUserDetails(data) {
                     </div>
                 `).join('')}
             </div>
+            ${convPagination.total_pages > 1 ? `
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">Showing ${startItem} to ${endItem} of ${convPagination.total}</small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            ${convPagination.has_prev ? `
+                                <li class="page-item">
+                                    <a class="page-link" href="#" onclick="loadUserDetails(${user.id}, ${currentClassPage}, ${convPagination.page - 1}); return false;">Previous</a>
+                                </li>
+                            ` : ''}
+                            ${convPagination.has_next ? `
+                                <li class="page-item">
+                                    <a class="page-link" href="#" onclick="loadUserDetails(${user.id}, ${currentClassPage}, ${convPagination.page + 1}); return false;">Next</a>
+                                </li>
+                            ` : ''}
+                        </ul>
+                    </nav>
+                </div>
+            ` : ''}
         `;
     } else {
         conversationsHtml = '<p class="text-muted">No chat conversations available</p>';
