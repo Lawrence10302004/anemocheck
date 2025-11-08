@@ -1271,7 +1271,12 @@ def admin_dashboard():
     stats = db.get_statistics()
     
     # Get recent classifications with pagination
-    recent_data = db.get_recent_classifications(page=page, per_page=5)
+    recent_data = db.get_recent_classifications(page=page, per_page=3)
+    
+    # Format timestamps with AM/PM
+    for record in recent_data['records']:
+        if 'created_at' in record:
+            record['created_at'] = format_philippines_time_ampm(record['created_at'])
     
     # Get chart data with imported data
     charts_data = get_combined_charts_data()
@@ -1427,10 +1432,10 @@ def admin_user_details(user_id):
     # Get user's medical data
     medical_data = db.get_medical_data(user_id)
     
-    # Get user's classification history (last 3)
+    # Get user's classification history (last 3 for pagination)
     classification_history = db.get_user_classification_history(user_id, limit=3)
     
-    # Get user's chat conversations (last 3)
+    # Get user's chat conversations (last 3 for pagination)
     all_conversations = simple_chat.get_user_conversations(user_id, is_admin=False)
     conversations = all_conversations[:3] if all_conversations else []
     
