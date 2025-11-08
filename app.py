@@ -1424,6 +1424,11 @@ def admin_user_details(user_id):
     if not current_user.is_admin:
         return jsonify({'success': False, 'error': 'Access denied'}), 403
     
+    # Get pagination parameters for classification history
+    class_page = request.args.get('class_page', 1, type=int)
+    if class_page < 1:
+        class_page = 1
+    
     # Get user data
     user_data = db.get_user(user_id)
     if not user_data:
@@ -1432,8 +1437,9 @@ def admin_user_details(user_id):
     # Get user's medical data
     medical_data = db.get_medical_data(user_id)
     
-    # Get user's classification history (last 3 for pagination)
-    classification_history = db.get_user_classification_history(user_id, limit=3)
+    # Get user's classification history with pagination (3 per page)
+    classification_data = db.get_user_classification_history_paginated(user_id, page=class_page, per_page=3)
+    classification_history = classification_data['records']
     
     # Get user's chat conversations (last 3 for pagination)
     all_conversations = simple_chat.get_user_conversations(user_id, is_admin=False)
@@ -1470,6 +1476,16 @@ def admin_user_details(user_id):
         },
         'medical_data': medical_data,
         'classification_history': classification_history,
+        'classification_pagination': {
+            'page': classification_data['page'],
+            'per_page': classification_data['per_page'],
+            'total': classification_data['total'],
+            'total_pages': classification_data['total_pages'],
+            'has_prev': classification_data['has_prev'],
+            'has_next': classification_data['has_next'],
+            'prev_num': classification_data['prev_num'],
+            'next_num': classification_data['next_num']
+        },
         'conversations': conversations
     }
     
