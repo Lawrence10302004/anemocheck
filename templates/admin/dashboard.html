@@ -875,7 +875,12 @@ function handleFileImport(input) {
     })
     .catch(error => {
         console.error('Import error:', error);
-        alert('Import failed: ' + error.message);
+        showToast(
+            'error',
+            'Import Failed',
+            error.message || 'An error occurred while importing the file. Please try again.',
+            5000
+        );
     })
     .finally(() => {
         // Reset button state
