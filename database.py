@@ -581,10 +581,16 @@ def add_classification_record(*args, **kwargs):
 
     else:
         # Full CBC form - pick values from kwargs, defaulting to 0 or None where sensible
-        # Note: immature_granulocytes defaults to 0.8 (median from training data) for model consistency
+        # Ensure patient columns exist (SQLite safe)
+        try:
+            _ensure_patient_columns(cursor)
+        except Exception:
+            pass
+
         fields = [
             'wbc', 'rbc', 'hgb', 'hct', 'mcv', 'mch', 'mchc', 'plt',
-            'neutrophils', 'lymphocytes', 'monocytes', 'eosinophils', 'basophil', 'immature_granulocytes'
+            'neutrophils', 'lymphocytes', 'monocytes', 'eosinophils', 'basophil', 'immature_granulocytes',
+            'patient_name', 'patient_age', 'patient_gender'
         ]
         # Use 0.8 for immature_granulocytes if not provided (matches training data median)
         # But explicitly preserve 0.0 values when provided
@@ -599,6 +605,8 @@ def add_classification_record(*args, **kwargs):
                 else:
                     # Value was not provided, use default
                     values.append(0.8)
+            elif f in ('patient_name', 'patient_age', 'patient_gender'):
+                values.append(kwargs.get(f))
             else:
                 values.append(kwargs.get(f, 0.0))
         predicted_class = kwargs.get('predicted_class')
@@ -611,8 +619,9 @@ def add_classification_record(*args, **kwargs):
             INSERT INTO classification_history 
             (user_id, wbc, rbc, hgb, hct, mcv, mch, mchc, plt,
              neutrophils, lymphocytes, monocytes, eosinophils, basophil, immature_granulocytes,
+             patient_name, patient_age, patient_gender,
              predicted_class, confidence, recommendation, notes, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             tuple([user_id] + values + [predicted_class, confidence, recommendation, notes, ph_now])
         )
@@ -1929,5 +1938,29 @@ def get_other_person_classifications(limit=100):
     rows = [dict(row) for row in cursor.fetchall()]
     conn.close()
     return rows
+
+def _ensure_patient_columns(cursor):
+    """Ensure patient_name, patient_age, patient_gender columns exist on classification_history (SQLite-safe)."""
+    try:
+        cursor.execute("SELECT patient_name FROM classification_history LIMIT 1")
+    except Exception:
+        try:
+            cursor.execute("ALTER TABLE classification_history ADD COLUMN patient_name TEXT")
+        except Exception:
+            pass
+    try:
+        cursor.execute("SELECT patient_age FROM classification_history LIMIT 1")
+    except Exception:
+        try:
+            cursor.execute("ALTER TABLE classification_history ADD COLUMN patient_age INTEGER")
+        except Exception:
+            pass
+    try:
+        cursor.execute("SELECT patient_gender FROM classification_history LIMIT 1")
+    except Exception:
+        try:
+            cursor.execute("ALTER TABLE classification_history ADD COLUMN patient_gender TEXT")
+        except Exception:
+            pass
 
 

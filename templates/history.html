@@ -41,6 +41,7 @@
                         <th>IGR (%)</th>
                         <th>Classification</th>
                         <th>Confidence</th>
+                        <th>Patient</th>
                         <th>Notes</th>
                         <th>Actions</th>
                     </tr>
@@ -80,6 +81,16 @@
                                 {% endif %}
                             </td>
                             <td>{{ "%.2f"|format(record.confidence * 100) }}%</td>
+                            <td>
+                                {% if record.patient_name or record.patient_age or record.patient_gender %}
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" 
+                                        data-bs-toggle="tooltip" title="{{ (record.patient_name or '') ~ (', ' if record.patient_name and (record.patient_age or record.patient_gender) else '') ~ (record.patient_age|string if record.patient_age else '') ~ (', ' if record.patient_age and record.patient_gender else '') ~ (record.patient_gender|capitalize if record.patient_gender else '') }}">
+                                        <i class="fas fa-user"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if record.notes %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
