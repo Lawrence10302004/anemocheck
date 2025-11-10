@@ -104,7 +104,7 @@ def register_export_routes(app):
             # Get the value from the row dict
             # The row is already converted to dict in database.py, so we can use .get()
             immature_granulocytes_raw = r.get('immature_granulocytes')
-            
+
             # Convert to float first, handling all cases
             # This approach ensures 0.0 values are preserved
             # IMPORTANT: We need to distinguish between None (not provided) and 0.0 (explicitly provided)
@@ -118,18 +118,22 @@ def register_export_routes(app):
                 # Try to convert to float
                 try:
                     immature_granulocytes_value = float(immature_granulocytes_raw)
-                    # Explicitly preserve 0.0 values - this is a valid value entered by user
-                    # Keep as float 0.0 - CSV writer will handle it correctly
                 except (ValueError, TypeError, AttributeError):
                     # If conversion fails, use default
                     immature_granulocytes_value = 0.8
 
+            # Force zeros to be visible in Excel by writing as text (tab-prefixed)
+            if isinstance(immature_granulocytes_value, (int, float)) and abs(float(immature_granulocytes_value)) < 1e-12:
+                immature_export = '\t0'
+            else:
+                immature_export = immature_granulocytes_value
+
             try:
-                app.logger.info("Admin CSV export: record_id=%s immature_final=%r", r.get('id'), immature_granulocytes_value)
+                app.logger.info("Admin CSV export: record_id=%s immature_final=%r", r.get('id'), immature_export)
             except Exception:
                 pass
 
-            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes_value, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
+            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_export, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
         output = make_response(si.getvalue())
         output.headers['Content-Disposition'] = 'attachment; filename=anemocheck_classification_history.csv'
