@@ -82,18 +82,10 @@
                             </td>
                             <td>{{ "%.2f"|format(record.confidence * 100) }}%</td>
                             <td>
-                                {% set show_patient = record.patient_name or record.patient_age or record.patient_gender %}
-                                {% if not show_patient and record.notes and record.notes.startswith('Patient:') %}
+                                {% if record.notes and record.notes.startswith('Patient:') %}
                                     {% set legacy_name = (record.notes.split('Patient:')[1].split('.') | first) | trim %}
-                                    {% set show_patient = legacy_name %}
-                                {% endif %}
-                                {% if show_patient %}
-                                    {% set _name = record.patient_name or legacy_name or '-' %}
-                                    {% set _age = record.patient_age if record.patient_age is not none else '-' %}
-                                    {% set _gender = (record.patient_gender|capitalize) if record.patient_gender else '-' %}
-                                    {% set _tooltip = 'Full Name: ' ~ _name ~ '<br>Age: ' ~ _age ~ '<br>Gender: ' ~ _gender %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        data-bs-toggle="tooltip" data-bs-html="true" title="{{ _tooltip | safe }}">
+                                        data-bs-toggle="tooltip" title="{{ legacy_name }}">
                                         <i class="fas fa-user"></i>
                                     </button>
                                 {% else %}
@@ -310,7 +302,7 @@ function sendResultEmail(recordId) {
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize Bootstrap tooltips (if any)
     const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.map(t => new bootstrap.Tooltip(t, { html: true }));
+    tooltipTriggerList.map(t => new bootstrap.Tooltip(t));
 
     // Read JSON safely from the DOM (avoids inlining Jinja tokens in JS)
     let recordsData = [];

@@ -281,8 +281,6 @@
               <th>ID</th>
               <th>User</th>
               <th>Patient</th>
-              <th>Age</th>
-              <th>Gender</th>
               <th>Date</th>
               <th>WBC</th>
               <th>RBC</th>
@@ -299,16 +297,14 @@
           <tbody>
             {% for rec in other_person_records %}
             {% set _is_normal = (rec.predicted_class is string and rec.predicted_class.lower().find('normal') != -1) %}
-            {% set _patient = rec.patient_name %}
-            {% if not _patient and rec.notes and rec.notes.startswith('Patient:') %}
+            {% set _patient = '-' %}
+            {% if rec.notes and rec.notes.startswith('Patient:') %}
               {% set _patient = (rec.notes.split('Patient:')[1].split('.') | first) | trim %}
             {% endif %}
             <tr>
               <td>{{ rec.id }}</td>
               <td>{{ rec.username }}</td>
-              <td>{{ _patient or '-' }}</td>
-              <td>{{ rec.patient_age if rec.patient_age is not none else '-' }}</td>
-              <td>{{ rec.patient_gender|capitalize if rec.patient_gender else '-' }}</td>
+              <td>{{ _patient }}</td>
               <td>{{ rec.created_at }}</td>
               <td>{{ '%.2f'|format(rec.wbc) }}</td>
               <td>{{ '%.2f'|format(rec.rbc) }}</td>

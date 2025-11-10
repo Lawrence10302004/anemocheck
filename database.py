@@ -1927,9 +1927,7 @@ else:
 
 
 def get_other_person_classifications(limit=100):
-    """Return recent classifications that were submitted for another person.
-    Prefer rows with patient_name; include legacy rows with notes starting with 'Patient:' as fallback.
-    """
+    """Return recent classifications that were submitted for another person (legacy detection via notes)."""
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute(
@@ -1937,8 +1935,7 @@ def get_other_person_classifications(limit=100):
         SELECT ch.*, u.username, u.first_name, u.last_name
         FROM classification_history ch
         LEFT JOIN users u ON ch.user_id = u.id
-        WHERE (ch.patient_name IS NOT NULL AND TRIM(ch.patient_name) <> '')
-           OR (ch.notes LIKE 'Patient:%')
+        WHERE ch.notes LIKE 'Patient:%'
         ORDER BY ch.created_at DESC
         LIMIT ?
         """,
