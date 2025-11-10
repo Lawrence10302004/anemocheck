@@ -1909,3 +1909,25 @@ else:
                 print(f"Error initializing database: {e2}")
 
 
+def get_other_person_classifications(limit=100):
+    """Return recent classifications that were submitted for another person.
+    We detect these by the note prefix added when the toggle is used: 'Patient: <name>. ...'
+    """
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT ch.*, u.username, u.first_name, u.last_name
+        FROM classification_history ch
+        LEFT JOIN users u ON ch.user_id = u.id
+        WHERE ch.notes LIKE 'Patient:%'
+        ORDER BY ch.created_at DESC
+        LIMIT ?
+        """,
+        (limit,)
+    )
+    rows = [dict(row) for row in cursor.fetchall()]
+    conn.close()
+    return rows
+
+

@@ -1569,11 +1569,18 @@ def admin_history():
     # Get paginated classification history
     history_data = db.get_classification_history_paginated(page=page, per_page=5)
     
+    # Fetch classifications submitted for another person (notes starting with 'Patient:')
+    other_person_records = db.get_other_person_classifications(limit=100)
+
     # Format timestamps with AM/PM for each record
     for record in history_data['records']:
         if 'created_at' in record:
             record['created_at'] = format_philippines_time_ampm(record['created_at'])
-    
+
+    for rec in other_person_records:
+        if 'created_at' in rec:
+            rec['created_at'] = format_philippines_time_ampm(rec['created_at'])
+
     # Get system statistics (same as dashboard)
     stats = db.get_statistics()
     
@@ -1590,6 +1597,7 @@ def admin_history():
     
     return render_template('admin/history.html', 
                          history_data=history_data,
+                         other_person_records=other_person_records,
                          total_records=total_records,
                          anemic_cases=anemic_cases,
                          normal_cases=normal_cases,

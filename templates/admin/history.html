@@ -265,6 +265,71 @@
     </div>
 </div>
 
+<!-- Classifications for Another Person -->
+<div class="container-fluid mt-3">
+  <div class="card shadow mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+      <h6 class="m-0 font-weight-bold text-primary">Classifications for Another Person</h6>
+      <span class="text-muted small">Shows entries where the dashboard toggle was used</span>
+    </div>
+    <div class="card-body">
+      {% if other_person_records and other_person_records|length > 0 %}
+      <div class="table-responsive">
+        <table class="table table-bordered" width="100%" cellspacing="0">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User</th>
+              <th>Patient</th>
+              <th>Date</th>
+              <th>WBC</th>
+              <th>RBC</th>
+              <th>HGB</th>
+              <th>HCT</th>
+              <th>MCV</th>
+              <th>MCH</th>
+              <th>MCHC</th>
+              <th>PLT</th>
+              <th>Result</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rec in other_person_records %}
+            {% set _is_normal = (rec.predicted_class is string and rec.predicted_class.lower().find('normal') != -1) %}
+            {% set _patient = '-' %}
+            {% if rec.notes and 'Patient:' in rec.notes %}
+              {% set _patient = rec.notes.split('Patient:')[1].split('.')|first.strip() %}
+            {% endif %}
+            <tr>
+              <td>{{ rec.id }}</td>
+              <td>{{ rec.username }}</td>
+              <td>{{ _patient }}</td>
+              <td>{{ rec.created_at }}</td>
+              <td>{{ '%.2f'|format(rec.wbc) }}</td>
+              <td>{{ '%.2f'|format(rec.rbc) }}</td>
+              <td>{{ '%.2f'|format(rec.hgb) }}</td>
+              <td>{{ '%.2f'|format(rec.hct) }}</td>
+              <td>{{ '%.2f'|format(rec.mcv) }}</td>
+              <td>{{ '%.2f'|format(rec.mch) }}</td>
+              <td>{{ '%.2f'|format(rec.mchc) }}</td>
+              <td>{{ '%.2f'|format(rec.plt) }}</td>
+              <td>
+                <span class="badge {% if not _is_normal %}bg-danger{% else %}bg-success{% endif %}">{{ rec.predicted_class }}</span>
+              </td>
+              <td>{{ '%.2f'|format((rec.confidence or 0)*100) }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="text-muted">No classifications for another person yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
 <!-- Record Details Modal -->
 <div class="modal fade" id="recordDetailsModal" tabindex="-1" aria-labelledby="recordDetailsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
