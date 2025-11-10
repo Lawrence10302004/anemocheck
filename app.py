@@ -2337,6 +2337,19 @@ def export_classification_history():
     for record in records:
         # Format timestamp with AM/PM and add tab to force Excel to display as text
         formatted_date = '\t' + format_philippines_time_ampm(record['created_at'])
+
+        # Preserve zeros for immature_granulocytes; default only when value is None/empty
+        ig_raw = record.get('immature_granulocytes')
+        if ig_raw is None:
+            ig_value = 0.8
+        elif isinstance(ig_raw, str) and ig_raw.strip() == '':
+            ig_value = 0.8
+        else:
+            try:
+                ig_value = float(ig_raw)
+            except Exception:
+                ig_value = 0.8
+
         writer.writerow([
             record['id'],
             record['user_id'],
@@ -2355,7 +2368,7 @@ def export_classification_history():
             record['monocytes'] or '',
             record['eosinophils'] or '',
             record['basophil'] or '',
-            record['immature_granulocytes'] or '',
+            ig_value,
             record['predicted_class'],
             f"{float(record.get('confidence', 0))*100:.2f}%" if record.get('confidence') is not None else '',
             record['recommendation'] or '',
