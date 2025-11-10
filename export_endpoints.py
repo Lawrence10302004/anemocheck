@@ -28,15 +28,16 @@ def register_export_routes(app):
             created_at_formatted = '\t' + format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
             # Use 0.8 (median from training data) as default if value is None/empty
             # Explicitly check for None vs 0 - 0 should be exported as 0, None should default to 0.8
-            immature_granulocytes_raw = r.get('immature_granulocytes')
+            # Try multiple ways to get the value from the row object
+            # SQLite Row objects can be accessed via dict conversion or direct key access
+            if hasattr(r, 'keys') and 'immature_granulocytes' in r.keys():
+                immature_granulocytes_raw = r['immature_granulocytes']
+            else:
+                immature_granulocytes_raw = r.get('immature_granulocytes')
             
             # Handle None, empty string, or actual 0 value
             # IMPORTANT: Check for None first, then handle 0.0 explicitly
-            # Also check if the key exists at all - if not, it means the column might not exist
-            if 'immature_granulocytes' not in r:
-                # Column doesn't exist in result - use default
-                immature_granulocytes_str = '0.8'
-            elif immature_granulocytes_raw is None:
+            if immature_granulocytes_raw is None:
                 immature_granulocytes_str = '0.8'  # Default when value is None/empty in database
             elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
                 immature_granulocytes_str = '0.8'  # Default when value is empty string
@@ -102,15 +103,16 @@ def register_export_routes(app):
             created_at_formatted = '\t' + format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
             # Use 0.8 (median from training data) as default if value is None/empty
             # Explicitly check for None vs 0 - 0 should be exported as 0, None should default to 0.8
-            immature_granulocytes_raw = r.get('immature_granulocytes')
+            # Try multiple ways to get the value from the row object
+            # SQLite Row objects can be accessed via dict conversion or direct key access
+            if hasattr(r, 'keys') and 'immature_granulocytes' in r.keys():
+                immature_granulocytes_raw = r['immature_granulocytes']
+            else:
+                immature_granulocytes_raw = r.get('immature_granulocytes')
             
             # Handle None, empty string, or actual 0 value
             # IMPORTANT: Check for None first, then handle 0.0 explicitly
-            # Also check if the key exists at all - if not, it means the column might not exist
-            if 'immature_granulocytes' not in r:
-                # Column doesn't exist in result - use default
-                immature_granulocytes_str = '0.8'
-            elif immature_granulocytes_raw is None:
+            if immature_granulocytes_raw is None:
                 immature_granulocytes_str = '0.8'  # Default when value is None/empty in database
             elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
                 immature_granulocytes_str = '0.8'  # Default when value is empty string
