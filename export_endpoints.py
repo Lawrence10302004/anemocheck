@@ -46,7 +46,11 @@ def register_export_routes(app):
                     immature_granulocytes = 0.8
             # Ensure 0.0 is written as "0" in CSV (not empty string)
             # Convert to string to ensure it's written explicitly
-            immature_granulocytes_str = str(immature_granulocytes) if immature_granulocytes is not None else '0.8'
+            # Special handling: if value is 0 or 0.0, write as "0" (not "0.0") for better Excel compatibility
+            if immature_granulocytes == 0 or immature_granulocytes == 0.0:
+                immature_granulocytes_str = '0'
+            else:
+                immature_granulocytes_str = str(immature_granulocytes) if immature_granulocytes is not None else '0.8'
             cw.writerow([
                 created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'),
                 r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes_str, r.get('predicted_class'), confidence_formatted, r.get('notes')
@@ -111,7 +115,11 @@ def register_export_routes(app):
                     immature_granulocytes = 0.8
             # Ensure 0.0 is written as "0" in CSV (not empty string)
             # Convert to string to ensure it's written explicitly
-            immature_granulocytes_str = str(immature_granulocytes) if immature_granulocytes is not None else '0.8'
+            # Special handling: if value is 0 or 0.0, write as "0" (not "0.0") for better Excel compatibility
+            if immature_granulocytes == 0 or immature_granulocytes == 0.0:
+                immature_granulocytes_str = '0'
+            else:
+                immature_granulocytes_str = str(immature_granulocytes) if immature_granulocytes is not None else '0.8'
             cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes_str, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
         output = make_response(si.getvalue())
