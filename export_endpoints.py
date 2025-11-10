@@ -46,9 +46,10 @@ def register_export_routes(app):
                     immature_granulocytes = float(immature_granulocytes_raw)
                     # Explicitly preserve 0.0 values (don't convert to default)
                     # This ensures that explicit 0 values entered by user are preserved
-                    # Write 0.0 as "0" for better Excel compatibility
+                    # Write 0.0 as "0.0" (not "0") to ensure it's not treated as empty by CSV/Excel
+                    # This ensures Excel recognizes it as a numeric value, not an empty cell
                     if immature_granulocytes == 0.0 or immature_granulocytes == 0 or abs(immature_granulocytes) < 0.0001:
-                        immature_granulocytes_str = '0'
+                        immature_granulocytes_str = '0.0'
                     else:
                         immature_granulocytes_str = str(immature_granulocytes)
                 except (ValueError, TypeError):
@@ -119,9 +120,10 @@ def register_export_routes(app):
                     immature_granulocytes = float(immature_granulocytes_raw)
                     # Explicitly preserve 0.0 values (don't convert to default)
                     # This ensures that explicit 0 values entered by user are preserved
-                    # Write 0.0 as "0" for better Excel compatibility
+                    # Write 0.0 as "0.0" (not "0") to ensure it's not treated as empty by CSV/Excel
+                    # This ensures Excel recognizes it as a numeric value, not an empty cell
                     if immature_granulocytes == 0.0 or immature_granulocytes == 0 or abs(immature_granulocytes) < 0.0001:
-                        immature_granulocytes_str = '0'
+                        immature_granulocytes_str = '0.0'
                     else:
                         immature_granulocytes_str = str(immature_granulocytes)
                 except (ValueError, TypeError):
