@@ -2410,8 +2410,18 @@ def export_classification_history():
         flash('Access denied. Administrator privileges required.')
         return redirect(url_for('dashboard'))
     
-    # Get all classification history
-    records = db.get_all_classification_history()
+    # Get all classification history with extended user fields
+    conn = db.get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT ch.*,
+               u.username, u.first_name, u.last_name, u.gender as user_gender, u.date_of_birth
+        FROM classification_history ch
+        LEFT JOIN users u ON ch.user_id = u.id
+        ORDER BY ch.created_at DESC
+    """)
+    records = [dict(row) for row in cursor.fetchall()]
+    conn.close()
     
     # Create CSV content with proper formatting
     import csv
@@ -2420,101 +2430,124 @@ def export_classification_history():
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Write header (include patient fields separately)
-    writer.writerow([
-        'ID', 'User ID', 'Username', 'Date',
-        'WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT',
-        'Neutrophils', 'Lymphocytes', 'Monocytes', 'Eosinophils', 'Basophil', 'Immature Granulocytes',
-        'Predicted Class', 'Confidence',
-        'Patient Name', 'Patient Age', 'Patient Gender',
-        'Recommendation', 'Notes'
-    ])
+    # Helper: Immature granulocytes value with defaults
+    def _ig_val(raw):
+        if raw is None: return 0.8
+        if isinstance(raw, str) and raw.strip() == '': return 0.8
+        try: return float(raw)
+        except Exception: return 0.8
     
-    # Write record data
-    for record in records:
-        # Format timestamp with AM/PM and add tab to force Excel to display as text
-        formatted_date = '\t' + format_philippines_time_ampm(record['created_at'])
-
-        # Preserve zeros for immature_granulocytes; default only when value is None/empty
-        ig_raw = record.get('immature_granulocytes')
-        if ig_raw is None:
-            ig_value = 0.8
-        elif isinstance(ig_raw, str) and ig_raw.strip() == '':
-            ig_value = 0.8
-        else:
-            try:
-                ig_value = float(ig_raw)
-            except Exception:
-                ig_value = 0.8
-
-        # Extract patient fields, supporting both explicit columns (preferred) and legacy inline-notes format
-        patient_name = record.get('patient_name') or ''
-        patient_age = record.get('patient_age') or ''
-        patient_gender = record.get('patient_gender') or ''
-        raw_notes = (record.get('notes') or '').strip()
-        cleaned_notes = raw_notes
-        if (not patient_name and not patient_age and not patient_gender) and raw_notes.lower().startswith('patient:'):
-            temp = raw_notes
+    # Helper: parse legacy patient info from notes and return (name, age, gender, cleaned_notes)
+    def _parse_legacy(raw):
+        raw = (raw or '').strip()
+        name = age = gender = ''
+        cleaned = raw
+        if raw.lower().startswith('patient:'):
+            temp = raw
             def _extract(label, text):
                 lbl = label.lower()
-                if not text.lower().startswith(lbl):
-                    return None, text
+                if not text.lower().startswith(lbl): return None, text
                 sub = text[len(label):]
-                # end at '.' or ','
-                dot = sub.find('.')
-                comma = sub.find(',')
+                dot = sub.find('.'); comma = sub.find(',')
                 end = -1
-                if dot == -1 and comma == -1:
-                    end = -1
-                elif dot == -1:
-                    end = comma
-                elif comma == -1:
-                    end = dot
-                else:
-                    end = min(dot, comma)
-                value = sub[:end].strip() if end != -1 else sub.strip()
-                remainder = sub[end + 1:].lstrip() if end != -1 else ''
-                return value or None, remainder
-            # Extract sequentially
-            name_val, rem = _extract('Patient:', temp)
-            if name_val is not None:
-                patient_name = name_val
-                temp = rem
-            age_val, rem = _extract('Age:', temp) if temp else (None, temp)
-            if age_val is not None:
-                patient_age = age_val
-                temp = rem
-            gender_val, rem = _extract('Gender:', temp) if temp else (None, temp)
-            if gender_val is not None:
-                patient_gender = gender_val
-                temp = rem
-            cleaned_notes = (temp or '').strip()
-
+                if dot == -1 and comma == -1: end = -1
+                elif dot == -1: end = comma
+                elif comma == -1: end = dot
+                else: end = min(dot, comma)
+                val = sub[:end].strip() if end != -1 else sub.strip()
+                rest = sub[end+1:].lstrip() if end != -1 else ''
+                return (val or None), rest
+            n, rem = _extract('Patient:', temp)
+            if n is not None: name, temp = n, rem
+            a, rem = _extract('Age:', temp)
+            if a is not None: age, temp = a, rem
+            g, rem = _extract('Gender:', temp)
+            if g is not None: gender, temp = g, rem
+            cleaned = (temp or '').strip()
+        return name, age, gender, cleaned
+    
+    # Split into self vs other
+    self_records = []
+    other_records = []
+    for rec in records:
+        notes = (rec.get('notes') or '').strip()
+        if rec.get('patient_name') or rec.get('patient_age') or rec.get('patient_gender') or notes.startswith('Patient:'):
+            other_records.append(rec)
+        else:
+            self_records.append(rec)
+    
+    # Section 1: Self classifications
+    writer.writerow(['Classifications (Self)'])
+    writer.writerow([
+        'ID', 'User ID', 'Username', 'Full Name', 'Age', 'Gender', 'Date',
+        'WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT',
+        'Neutrophils', 'Lymphocytes', 'Monocytes', 'Eosinophils', 'Basophil', 'Immature Granulocytes',
+        'Predicted Class', 'Confidence', 'Recommendation', 'Notes'
+    ])
+    from datetime import datetime
+    for r in self_records:
+        full_name = f"{(r.get('first_name') or '').strip()} {(r.get('last_name') or '').strip()}".strip()
+        # Age computed at classification time
+        age_val = ''
+        try:
+            dob_str = r.get('date_of_birth')
+            created_at = r.get('created_at')
+            if dob_str and created_at:
+                dob = datetime.strptime(dob_str, "%Y-%m-%d").date()
+                created_dt = datetime.strptime(str(created_at).split('.')[0], "%Y-%m-%d %H:%M:%S")
+                d = created_dt.date()
+                age_val = d.year - dob.year - ((d.month, d.day) < (dob.month, dob.day))
+        except Exception:
+            age_val = ''
+        formatted_date = '\t' + format_philippines_time_ampm(r['created_at'])
         writer.writerow([
-            record['id'],
-            record['user_id'],
-            record['username'],
+            r['id'], r['user_id'], r['username'], full_name, age_val, r.get('user_gender') or '',
             formatted_date,
-            record['wbc'],
-            record['rbc'],
-            record['hgb'],
-            record['hct'],
-            record['mcv'],
-            record['mch'],
-            record['mchc'],
-            record['plt'],
-            record['neutrophils'] or '',
-            record['lymphocytes'] or '',
-            record['monocytes'] or '',
-            record['eosinophils'] or '',
-            record['basophil'] or '',
-            ig_value,
-            record['predicted_class'],
-            f"{float(record.get('confidence', 0))*100:.2f}%" if record.get('confidence') is not None else '',
-            patient_name or '',
-            patient_age or '',
-            patient_gender or '',
-            record['recommendation'] or '',
+            r['wbc'], r['rbc'], r['hgb'], r['hct'], r['mcv'], r['mch'], r['mchc'], r['plt'],
+            r.get('neutrophils') or '', r.get('lymphocytes') or '', r.get('monocytes') or '',
+            r.get('eosinophils') or '', r.get('basophil') or '', _ig_val(r.get('immature_granulocytes')),
+            r['predicted_class'],
+            f"{float(r.get('confidence', 0))*100:.2f}%" if r.get('confidence') is not None else '',
+            r.get('recommendation') or '',
+            (r.get('notes') or '').strip()
+        ])
+    
+    # Blank line separator
+    writer.writerow([])
+    # Section 2: Another person
+    writer.writerow(['Classifications for Another Person'])
+    writer.writerow([
+        'ID', 'User ID', 'Username', 'Patient Name', 'Patient Age', 'Patient Gender', 'Date',
+        'WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT',
+        'Neutrophils', 'Lymphocytes', 'Monocytes', 'Eosinophils', 'Basophil', 'Immature Granulocytes',
+        'Predicted Class', 'Confidence', 'Recommendation', 'Notes'
+    ])
+    for r in other_records:
+        p_name = r.get('patient_name') or ''
+        p_age = r.get('patient_age') or ''
+        p_gender = r.get('patient_gender') or ''
+        raw_notes = (r.get('notes') or '').strip()
+        cleaned_notes = raw_notes
+        if not (p_name or p_age or p_gender):
+            n, a, g, cleaned = _parse_legacy(raw_notes)
+            p_name, p_age, p_gender = n or '', a or '', g or ''
+            cleaned_notes = cleaned
+        else:
+            # Clean any legacy prefix from notes even if explicit fields exist
+            _, _, _, cleaned = _parse_legacy(raw_notes)
+            if cleaned:
+                cleaned_notes = cleaned
+        formatted_date = '\t' + format_philippines_time_ampm(r['created_at'])
+        writer.writerow([
+            r['id'], r['user_id'], r['username'],
+            p_name, p_age, p_gender,
+            formatted_date,
+            r['wbc'], r['rbc'], r['hgb'], r['hct'], r['mcv'], r['mch'], r['mchc'], r['plt'],
+            r.get('neutrophils') or '', r.get('lymphocytes') or '', r.get('monocytes') or '',
+            r.get('eosinophils') or '', r.get('basophil') or '', _ig_val(r.get('immature_granulocytes')),
+            r['predicted_class'],
+            f"{float(r.get('confidence', 0))*100:.2f}%" if r.get('confidence') is not None else '',
+            r.get('recommendation') or '',
             cleaned_notes
         ])
     
