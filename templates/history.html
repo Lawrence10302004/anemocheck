@@ -82,9 +82,14 @@
                             </td>
                             <td>{{ "%.2f"|format(record.confidence * 100) }}%</td>
                             <td>
-                                {% if record.patient_name or record.patient_age or record.patient_gender %}
+                                {% set show_patient = record.patient_name or record.patient_age or record.patient_gender %}
+                                {% if not show_patient and record.notes and record.notes.startswith('Patient:') %}
+                                    {% set legacy_name = (record.notes.split('Patient:')[1].split('.') | first) | trim %}
+                                    {% set show_patient = legacy_name %}
+                                {% endif %}
+                                {% if show_patient %}
                                     <button type="button" class="btn btn-sm btn-outline-secondary" 
-                                        data-bs-toggle="tooltip" title="{{ (record.patient_name or '') ~ (', ' if record.patient_name and (record.patient_age or record.patient_gender) else '') ~ (record.patient_age|string if record.patient_age else '') ~ (', ' if record.patient_age and record.patient_gender else '') ~ (record.patient_gender|capitalize if record.patient_gender else '') }}">
+                                        data-bs-toggle="tooltip" title="{{ (record.patient_name or legacy_name or '') ~ (', ' if (record.patient_name or legacy_name) and (record.patient_age or record.patient_gender) else '') ~ (record.patient_age|string if record.patient_age else '') ~ (', ' if record.patient_age and record.patient_gender else '') ~ (record.patient_gender|capitalize if record.patient_gender else '') }}">
                                         <i class="fas fa-user"></i>
                                     </button>
                                 {% else %}
