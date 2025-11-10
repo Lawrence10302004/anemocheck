@@ -138,221 +138,233 @@
                 </div>
             </div>
 
-            <!-- History Table -->
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">All Classifications</h6>
-                    <div>
-                        <button type="button" class="btn btn-sm btn-outline-danger me-2" onclick="confirmDeleteAll()">
-                            <i class="fas fa-trash me-1"></i> Delete All (entire table)
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshData()">
-                            <i class="fas fa-sync me-1"></i> Refresh
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-bordered" id="historyTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>User</th>
-                                    <th>Date</th>
-                                    <th>WBC</th>
-                                    <th>RBC</th>
-                                    <th>HGB</th>
-                                    <th>HCT</th>
-                                    <th>MCV</th>
-                                    <th>MCH</th>
-                                    <th>MCHC</th>
-                                    <th>PLT</th>
-                                    <th>Result</th>
-                                    <th>Confidence</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for record in history_data.records %}
-                                <tr>
-                                    <td>{{ record.id }}</td>
-                                    <td>{{ record.username }}</td>
-                                    <td>{{ record.created_at }}</td>
-                                    <td>{{ "%.2f"|format(record.wbc) }}</td>
-                                    <td>{{ "%.2f"|format(record.rbc) }}</td>
-                                    <td>{{ "%.2f"|format(record.hgb) }}</td>
-                                    <td>{{ "%.2f"|format(record.hct) }}</td>
-                                    <td>{{ "%.2f"|format(record.mcv) }}</td>
-                                    <td>{{ "%.2f"|format(record.mch) }}</td>
-                                    <td>{{ "%.2f"|format(record.mchc) }}</td>
-                                    <td>{{ "%.2f"|format(record.plt) }}</td>
-                                    <td>
-                                        {% set is_normal = (record.predicted_class is string and record.predicted_class.lower().find('normal') != -1) %}
-                                        <span class="badge {% if not is_normal %}bg-danger{% else %}bg-success{% endif %}">
-                                            {% if not is_normal %}
-                                                Anemic ({{ record.predicted_class }})
-                                            {% else %}
-                                                {{ record.predicted_class }}
+            <!-- Carousel for tables -->
+            <div id="classTablesCarousel" class="carousel slide" data-bs-ride="false">
+                <div class="carousel-inner">
+                    <!-- Slide 1: All Classifications -->
+                    <div class="carousel-item active">
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold text-primary">All Classifications</h6>
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger me-2" onclick="confirmDeleteAll()">
+                                        <i class="fas fa-trash me-1"></i> Delete All (entire table)
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" onclick="refreshData()">
+                                        <i class="fas fa-sync me-1"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" id="historyTable" width="100%" cellspacing="0">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>User</th>
+                                                <th>Date</th>
+                                                <th>WBC</th>
+                                                <th>RBC</th>
+                                                <th>HGB</th>
+                                                <th>HCT</th>
+                                                <th>MCV</th>
+                                                <th>MCH</th>
+                                                <th>MCHC</th>
+                                                <th>PLT</th>
+                                                <th>Result</th>
+                                                <th>Confidence</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for record in history_data.records %}
+                                            <tr>
+                                                <td>{{ record.id }}</td>
+                                                <td>{{ record.username }}</td>
+                                                <td>{{ record.created_at }}</td>
+                                                <td>{{ "%.2f"|format(record.wbc) }}</td>
+                                                <td>{{ "%.2f"|format(record.rbc) }}</td>
+                                                <td>{{ "%.2f"|format(record.hgb) }}</td>
+                                                <td>{{ "%.2f"|format(record.hct) }}</td>
+                                                <td>{{ "%.2f"|format(record.mcv) }}</td>
+                                                <td>{{ "%.2f"|format(record.mch) }}</td>
+                                                <td>{{ "%.2f"|format(record.mchc) }}</td>
+                                                <td>{{ "%.2f"|format(record.plt) }}</td>
+                                                <td>
+                                                    {% set is_normal = (record.predicted_class is string and record.predicted_class.lower().find('normal') != -1) %}
+                                                    <span class="badge {% if not is_normal %}bg-danger{% else %}bg-success{% endif %}">
+                                                        {% if not is_normal %}
+                                                            Anemic ({{ record.predicted_class }})
+                                                        {% else %}
+                                                            {{ record.predicted_class }}
+                                                        {% endif %}
+                                                    </span>
+                                                </td>
+                                                <td>{{ "%.2f"|format(record.confidence * 100) }}%</td>
+                                                <td>
+                                                    <div class="btn-group" role="group">
+                                                        <button type="button" class="btn btn-sm btn-outline-info" 
+                                                                data-record-id="{{ record.id }}" onclick="viewRecordDetails(this.dataset.recordId)" title="View Details">
+                                                            <i class="fas fa-eye"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-success" 
+                                                                data-record-id="{{ record.id }}" onclick="sendResultEmail(this.dataset.recordId)" title="Send Result via Email">
+                                                            <i class="fas fa-envelope"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                                data-record-id="{{ record.id }}" onclick="deleteRecord(this.dataset.recordId)" title="Delete Record">
+                                                            <i class="fas fa-trash"></i>
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% if history_data.total_pages > 1 %}
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <div class="text-muted">
+                                        Showing {{ ((history_data.page - 1) * history_data.per_page) + 1 }} to 
+                                        {{ history_data.page * history_data.per_page if history_data.page * history_data.per_page < history_data.total else history_data.total }} 
+                                        of {{ history_data.total }} classifications
+                                    </div>
+                                    <nav aria-label="Classification history pagination">
+                                        <ul class="pagination pagination-sm mb-0">
+                                            {% if history_data.has_prev %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('admin_history', page=history_data.prev_num) }}">Previous</a>
+                                            </li>
                                             {% endif %}
-                                        </span>
-                                    </td>
-                                    <td>{{ "%.2f"|format(record.confidence * 100) }}%</td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-sm btn-outline-info" 
-                                                    data-record-id="{{ record.id }}" onclick="viewRecordDetails(this.dataset.recordId)" title="View Details">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-success" 
-                                                    data-record-id="{{ record.id }}" onclick="sendResultEmail(this.dataset.recordId)" title="Send Result via Email">
-                                                <i class="fas fa-envelope"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-danger" 
-                                                    data-record-id="{{ record.id }}" onclick="deleteRecord(this.dataset.recordId)" title="Delete Record">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    <!-- Pagination -->
-                    {% if history_data.total_pages > 1 %}
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <div class="text-muted">
-                            Showing {{ ((history_data.page - 1) * history_data.per_page) + 1 }} to 
-                            {{ history_data.page * history_data.per_page if history_data.page * history_data.per_page < history_data.total else history_data.total }} 
-                            of {{ history_data.total }} classifications
+                                            {% for page_num in range(1, history_data.total_pages + 1) %}
+                                                {% if page_num == history_data.page %}
+                                                <li class="page-item active">
+                                                    <span class="page-link">{{ page_num }}</span>
+                                                </li>
+                                                {% elif page_num <= 3 or page_num > history_data.total_pages - 3 or (page_num >= history_data.page - 1 and page_num <= history_data.page + 1) %}
+                                                <li class="page-item">
+                                                    <a class="page-link" href="{{ url_for('admin_history', page=page_num) }}">{{ page_num }}</a>
+                                                </li>
+                                                {% elif page_num == 4 and history_data.page > 5 %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                                {% elif page_num == history_data.total_pages - 3 and history_data.page < history_data.total_pages - 4 %}
+                                                <li class="page-item disabled">
+                                                    <span class="page-link">...</span>
+                                                </li>
+                                                {% endif %}
+                                            {% endfor %}
+                                            {% if history_data.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="{{ url_for('admin_history', page=history_data.next_num) }}">Next</a>
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </nav>
+                                </div>
+                                {% endif %}
+                            </div>
                         </div>
-                        <nav aria-label="Classification history pagination">
-                            <ul class="pagination pagination-sm mb-0">
-                                {% if history_data.has_prev %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('admin_history', page=history_data.prev_num) }}">Previous</a>
-                                </li>
-                                {% endif %}
-                                
-                                {% for page_num in range(1, history_data.total_pages + 1) %}
-                                    {% if page_num == history_data.page %}
-                                    <li class="page-item active">
-                                        <span class="page-link">{{ page_num }}</span>
-                                    </li>
-                                    {% elif page_num <= 3 or page_num > history_data.total_pages - 3 or (page_num >= history_data.page - 1 and page_num <= history_data.page + 1) %}
-                                    <li class="page-item">
-                                        <a class="page-link" href="{{ url_for('admin_history', page=page_num) }}">{{ page_num }}</a>
-                                    </li>
-                                    {% elif page_num == 4 and history_data.page > 5 %}
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                    {% elif page_num == history_data.total_pages - 3 and history_data.page < history_data.total_pages - 4 %}
-                                    <li class="page-item disabled">
-                                        <span class="page-link">...</span>
-                                    </li>
-                                    {% endif %}
-                                {% endfor %}
-                                
-                                {% if history_data.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="{{ url_for('admin_history', page=history_data.next_num) }}">Next</a>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
                     </div>
-                    {% endif %}
+                    
+                    <!-- Slide 2: Classifications for Another Person -->
+                    <div class="carousel-item">
+                        <div class="card shadow mb-4">
+                            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 font-weight-bold text-primary">Classifications for Another Person</h6>
+                                <span class="text-muted small">Shows entries where the dashboard toggle was used</span>
+                            </div>
+                            <div class="card-body">
+                              {% if other_person_records and other_person_records|length > 0 %}
+                              <div class="table-responsive">
+                                <table class="table table-bordered" width="100%" cellspacing="0">
+                                  <thead>
+                                    <tr>
+                                      <th>ID</th>
+                                      <th>User</th>
+                                      <th>Patient</th>
+                                      <th>Age</th>
+                                      <th>Gender</th>
+                                      <th>Date</th>
+                                      <th>WBC</th>
+                                      <th>RBC</th>
+                                      <th>HGB</th>
+                                      <th>HCT</th>
+                                      <th>MCV</th>
+                                      <th>MCH</th>
+                                      <th>MCHC</th>
+                                      <th>PLT</th>
+                                      <th>Result</th>
+                                      <th>Confidence</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {% for rec in other_person_records %}
+                                    {% set _is_normal = (rec.predicted_class is string and rec.predicted_class.lower().find('normal') != -1) %}
+                                    {% set _patient = '-' %}
+                                    {% set _age = rec.patient_age if rec.patient_age is defined and rec.patient_age is not none else '-' %}
+                                    {% set _gender = rec.patient_gender if rec.patient_gender is defined and rec.patient_gender is not none else '-' %}
+                                    {% set tooltip = None %}
+                                    {% if rec.notes and rec.notes.startswith('Patient:') %}
+                                      {% set _patient = (rec.notes.split('Patient:')[1].split('.') | first) | trim %}
+                                      {% if _age == '-' %}
+                                        {% set _age = rec.notes.split('Age:')[1].split('.')|first if 'Age:' in rec.notes else '-' %}
+                                      {% endif %}
+                                      {% if _gender == '-' %}
+                                        {% set _gender = rec.notes.split('Gender:')[1].split('.')|first if 'Gender:' in rec.notes else '-' %}
+                                      {% endif %}
+                                      {% set tooltip = 'Full Name: ' ~ _patient ~ '\nAge: ' ~ _age ~ '\nGender: ' ~ _gender %}
+                                    {% endif %}
+                                    <tr>
+                                      <td>{{ rec.id }}</td>
+                                      <td>{{ rec.username }}</td>
+                                      <td>
+                                        {% if tooltip %}
+                                          {% set tooltip_html = tooltip.replace('\n', '<br>') %}
+                                          <span data-bs-toggle="tooltip" data-bs-html="true" title="{{ tooltip_html | safe }}">{{ _patient }}</span>
+                                        {% else %}
+                                          {{ _patient }}
+                                        {% endif %}
+                                      </td>
+                                      <td>{{ _age }}</td>
+                                      <td>{{ _gender }}</td>
+                                      <td>{{ rec.created_at }}</td>
+                                      <td>{{ '%.2f'|format(rec.wbc) }}</td>
+                                      <td>{{ '%.2f'|format(rec.rbc) }}</td>
+                                      <td>{{ '%.2f'|format(rec.hgb) }}</td>
+                                      <td>{{ '%.2f'|format(rec.hct) }}</td>
+                                      <td>{{ '%.2f'|format(rec.mcv) }}</td>
+                                      <td>{{ '%.2f'|format(rec.mch) }}</td>
+                                      <td>{{ '%.2f'|format(rec.mchc) }}</td>
+                                      <td>{{ '%.2f'|format(rec.plt) }}</td>
+                                      <td>
+                                        <span class="badge {% if not _is_normal %}bg-danger{% else %}bg-success{% endif %}">{{ rec.predicted_class }}</span>
+                                      </td>
+                                      <td>{{ '%.2f'|format((rec.confidence or 0)*100) }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                  </tbody>
+                                </table>
+                              </div>
+                              {% else %}
+                                <div class="text-muted">No classifications for another person yet.</div>
+                              {% endif %}
+                            </div>
+                        </div>
+                    </div>
                 </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#classTablesCarousel" data-bs-slide="prev" style="filter: invert(30%);">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#classTablesCarousel" data-bs-slide="next" style="filter: invert(30%);">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
             </div>
         </main>
     </div>
-</div>
-
-<!-- Classifications for Another Person -->
-<div class="container-fluid mt-3">
-  <div class="card shadow mb-4">
-    <div class="card-header py-3 d-flex justify-content-between align-items-center">
-      <h6 class="m-0 font-weight-bold text-primary">Classifications for Another Person</h6>
-      <span class="text-muted small">Shows entries where the dashboard toggle was used</span>
-    </div>
-    <div class="card-body">
-      {% if other_person_records and other_person_records|length > 0 %}
-      <div class="table-responsive">
-        <table class="table table-bordered" width="100%" cellspacing="0">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>User</th>
-              <th>Patient</th>
-              <th>Age</th>
-              <th>Gender</th>
-              <th>Date</th>
-              <th>WBC</th>
-              <th>RBC</th>
-              <th>HGB</th>
-              <th>HCT</th>
-              <th>MCV</th>
-              <th>MCH</th>
-              <th>MCHC</th>
-              <th>PLT</th>
-              <th>Result</th>
-              <th>Confidence</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for rec in other_person_records %}
-            {% set _is_normal = (rec.predicted_class is string and rec.predicted_class.lower().find('normal') != -1) %}
-            {% set _patient = '-' %}
-            {% set _age = rec.patient_age if rec.patient_age is defined and rec.patient_age is not none else '-' %}
-            {% set _gender = rec.patient_gender if rec.patient_gender is defined and rec.patient_gender is not none else '-' %}
-            {% set tooltip = None %}
-            {% if rec.notes and rec.notes.startswith('Patient:') %}
-              {% set _patient = (rec.notes.split('Patient:')[1].split('.') | first) | trim %}
-              {% if _age == '-' %}
-                {% set _age = rec.notes.split('Age:')[1].split('.')|first if 'Age:' in rec.notes else '-' %}
-              {% endif %}
-              {% if _gender == '-' %}
-                {% set _gender = rec.notes.split('Gender:')[1].split('.')|first if 'Gender:' in rec.notes else '-' %}
-              {% endif %}
-              {% set tooltip = 'Full Name: ' ~ _patient ~ '\nAge: ' ~ _age ~ '\nGender: ' ~ _gender %}
-            {% endif %}
-            <tr>
-              <td>{{ rec.id }}</td>
-              <td>{{ rec.username }}</td>
-              <td>
-                {% if tooltip %}
-                  {% set tooltip_html = tooltip.replace('\n', '<br>') %}
-                  <span data-bs-toggle="tooltip" data-bs-html="true" title="{{ tooltip_html | safe }}">{{ _patient }}</span>
-                {% else %}
-                  {{ _patient }}
-                {% endif %}
-              </td>
-              <td>{{ _age }}</td>
-              <td>{{ _gender }}</td>
-              <td>{{ rec.created_at }}</td>
-              <td>{{ '%.2f'|format(rec.wbc) }}</td>
-              <td>{{ '%.2f'|format(rec.rbc) }}</td>
-              <td>{{ '%.2f'|format(rec.hgb) }}</td>
-              <td>{{ '%.2f'|format(rec.hct) }}</td>
-              <td>{{ '%.2f'|format(rec.mcv) }}</td>
-              <td>{{ '%.2f'|format(rec.mch) }}</td>
-              <td>{{ '%.2f'|format(rec.mchc) }}</td>
-              <td>{{ '%.2f'|format(rec.plt) }}</td>
-              <td>
-                <span class="badge {% if not _is_normal %}bg-danger{% else %}bg-success{% endif %}">{{ rec.predicted_class }}</span>
-              </td>
-              <td>{{ '%.2f'|format((rec.confidence or 0)*100) }}%</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% else %}
-        <div class="text-muted">No classifications for another person yet.</div>
-      {% endif %}
-    </div>
-  </div>
 </div>
 
 <!-- Record Details Modal -->
