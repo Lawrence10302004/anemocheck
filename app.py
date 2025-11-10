@@ -807,7 +807,12 @@ def xgbclasify():
     basophil = float(request.form.get("BASOPHIL"))
     # Default to median value from training data (0.8) if not provided
     # Using 0.0 was causing different predictions because training data median is 0.8
-    immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES") or 0.8)
+    # Explicitly check if field is empty vs 0 - empty should default to 0.8, but 0 should stay 0
+    immature_granulocytes_input = request.form.get("IMMATURE_GRANULYTES", "").strip()
+    if immature_granulocytes_input == "":
+        immature_granulocytes = 0.8  # Default when field is left empty
+    else:
+        immature_granulocytes = float(immature_granulocytes_input)  # Use actual value (including 0)
     notes = request.form.get("notes")  # Corrected from "mcv" to "notes"
 
     # Check if classifying for another person
@@ -1088,7 +1093,12 @@ def xgb_try_clasify():
     basophil = float(request.form.get("BASOPHIL"))
     # Default to median value from training data (0.8) if not provided
     # Using 0.0 was causing different predictions because training data median is 0.8
-    immature_granulocytes = float(request.form.get("IMMATURE_GRANULYTES") or 0.8)
+    # Explicitly check if field is empty vs 0 - empty should default to 0.8, but 0 should stay 0
+    immature_granulocytes_input = request.form.get("IMMATURE_GRANULYTES", "").strip()
+    if immature_granulocytes_input == "":
+        immature_granulocytes = 0.8  # Default when field is left empty
+    else:
+        immature_granulocytes = float(immature_granulocytes_input)  # Use actual value (including 0)
     #notes = request.form.get("notes")  # Corrected from "mcv" to "notes"
 
     
