@@ -621,7 +621,7 @@ def add_classification_record(*args, **kwargs):
              neutrophils, lymphocytes, monocytes, eosinophils, basophil, immature_granulocytes,
              patient_name, patient_age, patient_gender,
              predicted_class, confidence, recommendation, notes, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             tuple([user_id] + values + [predicted_class, confidence, recommendation, notes, ph_now])
         )
