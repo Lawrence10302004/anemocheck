@@ -2417,10 +2417,15 @@ def export_classification_history():
     output = io.StringIO()
     writer = csv.writer(output)
     
-    # Write header
-    writer.writerow(['ID', 'User ID', 'Username', 'Date', 'WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT', 
-                    'Neutrophils', 'Lymphocytes', 'Monocytes', 'Eosinophils', 'Basophil', 'Immature Granulocytes', 
-                    'Predicted Class', 'Confidence', 'Recommendation', 'Notes'])
+    # Write header (include patient fields separately)
+    writer.writerow([
+        'ID', 'User ID', 'Username', 'Date',
+        'WBC', 'RBC', 'HGB', 'HCT', 'MCV', 'MCH', 'MCHC', 'PLT',
+        'Neutrophils', 'Lymphocytes', 'Monocytes', 'Eosinophils', 'Basophil', 'Immature Granulocytes',
+        'Predicted Class', 'Confidence',
+        'Patient Name', 'Patient Age', 'Patient Gender',
+        'Recommendation', 'Notes'
+    ])
     
     # Write record data
     for record in records:
@@ -2438,6 +2443,49 @@ def export_classification_history():
                 ig_value = float(ig_raw)
             except Exception:
                 ig_value = 0.8
+
+        # Extract patient fields, supporting both explicit columns (preferred) and legacy inline-notes format
+        patient_name = record.get('patient_name') or ''
+        patient_age = record.get('patient_age') or ''
+        patient_gender = record.get('patient_gender') or ''
+        raw_notes = (record.get('notes') or '').strip()
+        cleaned_notes = raw_notes
+        if (not patient_name and not patient_age and not patient_gender) and raw_notes.lower().startswith('patient:'):
+            temp = raw_notes
+            def _extract(label, text):
+                lbl = label.lower()
+                if not text.lower().startswith(lbl):
+                    return None, text
+                sub = text[len(label):]
+                # end at '.' or ','
+                dot = sub.find('.')
+                comma = sub.find(',')
+                end = -1
+                if dot == -1 and comma == -1:
+                    end = -1
+                elif dot == -1:
+                    end = comma
+                elif comma == -1:
+                    end = dot
+                else:
+                    end = min(dot, comma)
+                value = sub[:end].strip() if end != -1 else sub.strip()
+                remainder = sub[end + 1:].lstrip() if end != -1 else ''
+                return value or None, remainder
+            # Extract sequentially
+            name_val, rem = _extract('Patient:', temp)
+            if name_val is not None:
+                patient_name = name_val
+                temp = rem
+            age_val, rem = _extract('Age:', temp) if temp else (None, temp)
+            if age_val is not None:
+                patient_age = age_val
+                temp = rem
+            gender_val, rem = _extract('Gender:', temp) if temp else (None, temp)
+            if gender_val is not None:
+                patient_gender = gender_val
+                temp = rem
+            cleaned_notes = (temp or '').strip()
 
         writer.writerow([
             record['id'],
@@ -2460,8 +2508,11 @@ def export_classification_history():
             ig_value,
             record['predicted_class'],
             f"{float(record.get('confidence', 0))*100:.2f}%" if record.get('confidence') is not None else '',
+            patient_name or '',
+            patient_age or '',
+            patient_gender or '',
             record['recommendation'] or '',
-            record['notes'] or ''
+            cleaned_notes
         ])
     
     csv_content = output.getvalue()
