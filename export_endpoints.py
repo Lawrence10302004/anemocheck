@@ -92,6 +92,10 @@ def register_export_routes(app):
         cw = csv.writer(si)
         cw.writerow(['id','user_id','username','created_at','wbc','rbc','hgb','hct','mcv','mch','mchc','plt','neutrophils','lymphocytes','monocytes','eosinophils','basophil','immature_granulocytes','predicted_class','confidence','recommendation','notes'])
         for r in records:
+            try:
+                app.logger.info("Admin CSV export: record_id=%s immature_raw=%r", r.get('id'), r.get('immature_granulocytes'))
+            except Exception:
+                pass
             confidence_value = r.get('confidence')
             confidence_formatted = f"{float(confidence_value)*100:.2f}%" if confidence_value is not None else ''
             created_at_formatted = '\t' + format_philippines_time_ampm(r.get('created_at')) if r.get('created_at') else ''
@@ -119,7 +123,12 @@ def register_export_routes(app):
                 except (ValueError, TypeError, AttributeError):
                     # If conversion fails, use default
                     immature_granulocytes_value = 0.8
-            
+
+            try:
+                app.logger.info("Admin CSV export: record_id=%s immature_final=%r", r.get('id'), immature_granulocytes_value)
+            except Exception:
+                pass
+
             cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes_value, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
         output = make_response(si.getvalue())
