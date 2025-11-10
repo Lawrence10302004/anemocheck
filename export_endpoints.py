@@ -30,9 +30,11 @@ def register_export_routes(app):
             # Explicitly check for None vs 0 - 0 should be exported as 0, None should default to 0.8
             immature_granulocytes_raw = r.get('immature_granulocytes')
             # Handle None, empty string, or actual 0 value
-            # Check if value is None, empty string, or not provided
-            if immature_granulocytes_raw is None or immature_granulocytes_raw == '' or (isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == ''):
+            # IMPORTANT: Check for None first, then handle 0.0 explicitly
+            if immature_granulocytes_raw is None:
                 immature_granulocytes = 0.8  # Default when value is None/empty in database
+            elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
+                immature_granulocytes = 0.8  # Default when value is empty string
             else:
                 # Convert to float - this handles both int 0 and float 0.0
                 try:
@@ -42,9 +44,12 @@ def register_export_routes(app):
                 except (ValueError, TypeError):
                     # If conversion fails, use default
                     immature_granulocytes = 0.8
+            # Ensure 0.0 is written as "0" in CSV (not empty string)
+            # Convert to string to ensure it's written explicitly
+            immature_granulocytes_str = str(immature_granulocytes) if immature_granulocytes is not None else '0.8'
             cw.writerow([
                 created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'),
-                r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes, r.get('predicted_class'), confidence_formatted, r.get('notes')
+                r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes_str, r.get('predicted_class'), confidence_formatted, r.get('notes')
             ])
 
         output = make_response(si.getvalue())
@@ -90,9 +95,11 @@ def register_export_routes(app):
             # Explicitly check for None vs 0 - 0 should be exported as 0, None should default to 0.8
             immature_granulocytes_raw = r.get('immature_granulocytes')
             # Handle None, empty string, or actual 0 value
-            # Check if value is None, empty string, or not provided
-            if immature_granulocytes_raw is None or immature_granulocytes_raw == '' or (isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == ''):
+            # IMPORTANT: Check for None first, then handle 0.0 explicitly
+            if immature_granulocytes_raw is None:
                 immature_granulocytes = 0.8  # Default when value is None/empty in database
+            elif isinstance(immature_granulocytes_raw, str) and immature_granulocytes_raw.strip() == '':
+                immature_granulocytes = 0.8  # Default when value is empty string
             else:
                 # Convert to float - this handles both int 0 and float 0.0
                 try:
@@ -102,7 +109,10 @@ def register_export_routes(app):
                 except (ValueError, TypeError):
                     # If conversion fails, use default
                     immature_granulocytes = 0.8
-            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
+            # Ensure 0.0 is written as "0" in CSV (not empty string)
+            # Convert to string to ensure it's written explicitly
+            immature_granulocytes_str = str(immature_granulocytes) if immature_granulocytes is not None else '0.8'
+            cw.writerow([r.get('id'), r.get('user_id'), r.get('username'), created_at_formatted, r.get('wbc'), r.get('rbc'), r.get('hgb'), r.get('hct'), r.get('mcv'), r.get('mch'), r.get('mchc'), r.get('plt'), r.get('neutrophils'), r.get('lymphocytes'), r.get('monocytes'), r.get('eosinophils'), r.get('basophil'), immature_granulocytes_str, r.get('predicted_class'), confidence_formatted, r.get('recommendation'), r.get('notes')])
 
         output = make_response(si.getvalue())
         output.headers['Content-Disposition'] = 'attachment; filename=anemocheck_classification_history.csv'
