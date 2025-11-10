@@ -19,7 +19,7 @@ from timezone_utils import get_philippines_time, format_philippines_time, get_ph
 # from email.mime.text import MIMEText
 # from email.mime.multipart import MIMEMultipart
 
-from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, session
+from flask import Flask, render_template, redirect, url_for, request, flash, jsonify, session, send_file
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from flask_wtf import FlaskForm
@@ -818,6 +818,12 @@ def xgbclasify():
     # Check if classifying for another person via toggle only
     classify_other_person = request.form.get("classify_other_person") == "on"
 
+    # Debug logging of incoming data
+    logger.info("/xgbclasify classify_other_person=%s", classify_other_person)
+    logger.info("other_person_name=%s", request.form.get("other_person_name"))
+    logger.info("other_person_age=%s", request.form.get("other_person_age"))
+    logger.info("other_person_gender=%s", request.form.get("other_person_gender"))
+
     if classify_other_person:
         # Use alternative person's information
         other_person_age = request.form.get("other_person_age")
@@ -831,10 +837,12 @@ def xgbclasify():
         age = int(float(other_person_age))
         gender = 1 if other_person_gender.lower() == "female" else 0
         
-        # Append person's name to notes (legacy behavior)
-        if other_person_name:
-            patient_info = f"Patient: {other_person_name}. Age: {age}. Gender: {other_person_gender.capitalize()}."
-            notes = (patient_info + (" " + notes if notes else ""))
+        # Append person's name, age, and gender to notes so history/admin can display it
+        patient_info = f"Patient: {other_person_name}. Age: {other_person_age}. Gender: {other_person_gender.capitalize()}."
+        if notes:
+            notes = patient_info + " " + notes
+        else:
+            notes = patient_info
     else:
         # Use logged-in user's information (default behavior)
         birth_date_str = current_user.date_of_birth
@@ -1247,6 +1255,35 @@ def result(record_id):
     if "created_at" in record:
         record["created_at"] = format_philippines_time_ampm(record["created_at"])
     
+    # Extract patient details from legacy notes format
+    patient_name_display = None
+    patient_age_display = None
+    patient_gender_display = None
+    patient_note_remainder = record.get('notes') or ''
+
+    if record.get('notes') and record['notes'].startswith('Patient:'):
+        note_text = record['notes']
+        name_match = re.search(r'Patient:\s*([^\.]+)\.', note_text)
+        age_match = re.search(r'Age:\s*([^\.]+)\.', note_text)
+        gender_match = re.search(r'Gender:\s*([^\.]+)\.', note_text)
+        if name_match:
+            patient_name_display = name_match.group(1).strip()
+        if age_match:
+            patient_age_display = age_match.group(1).strip()
+        if gender_match:
+            patient_gender_display = gender_match.group(1).strip()
+
+        # Remove the patient details from the notes for separate display
+        patient_note_remainder = re.sub(r'^Patient:\s*[^\.]+\.\s*', '', note_text)
+        patient_note_remainder = re.sub(r'^Age:\s*[^\.]+\.\s*', '', patient_note_remainder)
+        patient_note_remainder = re.sub(r'^Gender:\s*[^\.]+\.\s*', '', patient_note_remainder)
+        patient_note_remainder = patient_note_remainder.strip()
+
+    record['patient_name_display'] = patient_name_display
+    record['patient_age_display'] = patient_age_display
+    record['patient_gender_display'] = patient_gender_display
+    record['patient_note_remainder'] = patient_note_remainder
+
     return render_template(
         'result.html',
         record=record,
