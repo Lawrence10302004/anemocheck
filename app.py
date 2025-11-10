@@ -833,8 +833,8 @@ def xgbclasify():
         
         # Append person's name to notes (legacy behavior)
         if other_person_name:
-            patient_info = f"Patient: {other_person_name}. "
-            notes = patient_info + (notes if notes else "")
+            patient_info = f"Patient: {other_person_name}. Age: {age}. Gender: {other_person_gender.capitalize()}."
+            notes = (patient_info + (" " + notes if notes else ""))
     else:
         # Use logged-in user's information (default behavior)
         birth_date_str = current_user.date_of_birth

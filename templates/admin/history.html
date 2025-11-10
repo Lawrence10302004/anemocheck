@@ -310,7 +310,8 @@
               <td>{{ rec.username }}</td>
               <td>
                 {% if tooltip %}
-                  <span data-bs-toggle="tooltip" title="{{ tooltip }}">{{ _patient }}</span>
+                  {% set tooltip_html = tooltip.replace('\n', '<br>') %}
+                  <span data-bs-toggle="tooltip" data-bs-html="true" title="{{ tooltip_html | safe }}">{{ _patient }}</span>
                 {% else %}
                   {{ _patient }}
                 {% endif %}
